@@ -32,8 +32,9 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Compile Include="Game.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Game.cs" />
+    <Compile Include="BattleMenu.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenTK">
@@ -67,5 +68,17 @@
     <None Include="Content\unit.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Content\fonts\Dosis\Dosis-Bold.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-ExtraBold.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-ExtraLight.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-Light.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-Medium.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-Regular.ttf" />
+    <None Include="Content\fonts\Dosis\Dosis-SemiBold.ttf" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\Courier New.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>
