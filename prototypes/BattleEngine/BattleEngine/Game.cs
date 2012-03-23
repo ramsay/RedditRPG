@@ -169,6 +169,23 @@ namespace BattleEngine
 		private void InitiatePlay(GameTime gameTime) {
 			gameState = GameState.Play;
 			playStartTime = DateTime.Now;
+			Console.Out.WriteLine ("Play initiated at {0}", playStartTime);
+			
+			Console.Out.WriteLine ("Player unit's state:");
+			for (int i = 0; i < playerCount; i++) {
+				Console.Out.Write ("Unit[{0}]: ", i);
+				playerTeam[i].WriteAttackState();
+				playerTeam[i].WritePositionState();
+				Console.Out.WriteLine();
+			}
+			
+			Console.Out.WriteLine ("Enemy unit's state:");
+			for (int i = 0; i < playerCount; i++) {
+				Console.Out.Write ("Enemy[{0}]: ", i);
+				enemyTeam[i].WriteAttackState();
+				enemyTeam[i].WritePositionState();
+				Console.Out.WriteLine();
+			}
 		}
 		
 		private void UpdatePlay(KeyboardState newState, GameTime gameTime) {
@@ -205,6 +222,41 @@ namespace BattleEngine
 			menuState.Push (state);
 		}
 		
+		private void StoreUnitTarget() {
+			switch (menuState.Peek()) {
+			case InputState.ActionSelect: //Attack
+				if (selectedTarget < playerCount) {
+					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget]);
+				} else {
+					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
+				}
+				break;
+			case InputState.PositionSelect: // Charge
+				if (selectedTarget < playerCount) {
+					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
+				} else {
+					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
+				}
+				break;
+			case InputState.RangeSelect: // Keep at Distance
+				if (selectedTarget < playerCount) {
+					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
+				} else {
+					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
+				}
+				break;
+			}
+		}
+		
+		private void StoreCoordTarget() {
+			switch (menuState.Peek()) {
+			case InputState.PositionSelect:
+				playerTeam[selectedUnit].setPositionTarget(cursorPosition);
+				break;
+			}
+		}
+		
+		
 		private InputState PopInputState() {
 			// Deactivate current Menu
 			if (menus[(int)menuState.Peek ()] != null) {
@@ -213,7 +265,11 @@ namespace BattleEngine
 			
 			// Restore state
 			InputState oldState = menuState.Pop();
-						
+			if (oldState == InputState.TargetSelect) {
+				StoreUnitTarget();
+			} else if (oldState == InputState.CoordSelect) {
+				StoreCoordTarget();
+			}
 			// Activate new Menu
 			if (menus[(int)menuState.Peek()] != null) {
 				menus[(int)menuState.Peek()].Visible = true;
@@ -266,9 +322,12 @@ namespace BattleEngine
 							distance += a;
 							a = temp;
 						}
+						playerTeam[selectedUnit].setKeepDistance(distance);
 						PushInputState(InputState.TargetSelect);
 					} else { // Done
-						PopInputState();
+						if (playerTeam[selectedUnit].hasPositionTarget()) {
+							PopInputState();
+						}
 					}
 				}
 				break;
@@ -290,15 +349,19 @@ namespace BattleEngine
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
 					switch ((PositionState)menus[(int)InputState.PositionSelect].getSelected ()) {
 					case PositionState.Charge:
+						playerTeam[selectedUnit].setPositionState(PositionState.Charge);
 						PushInputState(InputState.TargetSelect);
 						break;
 					case PositionState.Stay:
+						playerTeam[selectedUnit].setPositionState(PositionState.Stay);
 						PushInputState(InputState.CoordSelect);
 						break;
 					case PositionState.KeepDistance:
+						playerTeam[selectedUnit].setPositionState(PositionState.KeepDistance);
 						PushInputState(InputState.RangeSelect);
 						break;
 					case PositionState.RunAway:
+						playerTeam[selectedUnit].setPositionState(PositionState.RunAway);
 						break;
 					default: // Done
 						PopInputState();

@@ -28,6 +28,7 @@ namespace BattleEngine
 		private PositionState positionState;
 		// Allows us to use both static coords and moving units as targets
 		private Unit positionTarget;
+		private int keepDistance;
 		
 		public Unit (String name, Stats stats, Vector2 position)
 		{
@@ -53,11 +54,24 @@ namespace BattleEngine
 		}
 		
 		public void setAttackTarget(Unit target) {
+			attackState = true;
 			attackTarget = target;
+		}
+		
+		public void setPositionState(PositionState state) {
+			positionState = state;
+		}
+		
+		public void setKeepDistance(int distance) {
+			keepDistance = distance;
 		}
 		
 		public void setPositionTarget(Unit target) {
 			positionTarget = target;
+		}
+		
+		public bool hasPositionTarget() {
+			return positionTarget != null;
 		}
 		
 		public void setPositionTarget(Vector2 target) {
@@ -98,6 +112,35 @@ namespace BattleEngine
 				move (positionTarget);
 			}
 		}
+		
+		public void WriteAttackState() {
+			if (attackState) {
+				Console.Out.Write ("Attack unit at {0} ", attackTarget.Position);
+			} else {
+				Console.Out.Write ("Attack none ");
+			}
+		}
+		
+		public void WritePositionState() {
+			switch (positionState) {
+			case PositionState.Charge:
+				Console.Out.Write ("Charge unit at {0} ", positionTarget.Position);
+				break;
+			case PositionState.KeepDistance:
+				Console.Out.Write ("Keep {0} meters away from unit at {0} ", keepDistance, positionTarget.position);
+				break;
+			case PositionState.RunAway:
+				Console.Out.Write("Run away ");
+				break;
+			case PositionState.Stay:
+				Console.Out.Write("Move to {0} and stay ", positionTarget.Position);
+				break;
+			default:
+				Console.Out.Write("None");
+				break;
+			}
+		}
+		
 	}
 }
 
