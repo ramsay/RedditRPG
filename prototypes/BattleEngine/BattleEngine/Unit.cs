@@ -127,7 +127,7 @@ namespace BattleEngine
 				Console.Out.Write ("Charge unit at {0} ", positionTarget.Position);
 				break;
 			case PositionState.KeepDistance:
-				Console.Out.Write ("Keep {0} meters away from unit at {0} ", keepDistance, positionTarget.position);
+				Console.Out.Write ("Keep {0} meters away from unit at {1} ", keepDistance, positionTarget.Position);
 				break;
 			case PositionState.RunAway:
 				Console.Out.Write("Run away ");

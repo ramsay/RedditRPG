@@ -235,14 +235,14 @@ namespace BattleEngine
 				if (selectedTarget < playerCount) {
 					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
 				} else {
-					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
+					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget-playerCount]);
 				}
 				break;
 			case InputState.RangeSelect: // Keep at Distance
 				if (selectedTarget < playerCount) {
 					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
 				} else {
-					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
+					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget-playerCount]);
 				}
 				break;
 			}
@@ -317,7 +317,7 @@ namespace BattleEngine
 						// Range list is a fibonacii series: 1, 2, 3, 5, 8, 13
 						int a = 1;
 						int distance = 1;
-						for (int i = 1; i < selected; i++) {
+						for (int i = 0; i < selected; i++) {
 							int temp = distance;
 							distance += a;
 							a = temp;
