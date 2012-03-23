@@ -35,6 +35,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="BattleMenu.cs" />
+    <Compile Include="Unit.cs" />
+    <Compile Include="Stats.cs" />
+    <Compile Include="PositionState.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="OpenTK">

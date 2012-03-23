@@ -30,10 +30,9 @@ namespace BattleEngine
 		static int enemyCount = 3;
 		static int playerCount = 3;
 		
-		Vector2[] enemyPositions = new Vector2[enemyCount];
+		Unit[] enemyTeam = new Unit[enemyCount];
 		
-		Vector2[] playerPositions = new Vector2[playerCount];
-		
+		Unit[] playerTeam = new Unit[playerCount];
 		
 		static int playTimeLimit = 6; // seconds
 		DateTime playStartTime;
@@ -51,7 +50,6 @@ namespace BattleEngine
 		BattleMenu[] menus = new BattleMenu[6];
 		
 		enum ActionState {Attack, Position};
-		enum PositionState {Charge, Stay, KeepDistance, RunAway};
 		
 		public Game1 ()
 		{
@@ -63,18 +61,24 @@ namespace BattleEngine
 			graphics.PreferredBackBufferWidth = (int)width;
 			graphics.PreferredBackBufferHeight = (int)height;
 			
+			Stats defaultStats = new Stats(5,50,5,10);
 			Vector2 unitPosition = new Vector2(4f/16f*width, 3f/9f*height);
 			
 			// Initialize enemy positions
 			for (int i = 0; i < 3; i++ ) {
-				enemyPositions[i] = new Vector2(unitPosition.X, unitPosition.Y);
+				enemyTeam[i] = new Unit(
+					"", new Stats(defaultStats), 
+					new Vector2(unitPosition.X, unitPosition.Y)
+					);
 				unitPosition.Y += height/9f;
 			}
 			// Initialize player positions
 			unitPosition.X = 12f/16f*width;
 			unitPosition.Y = 3f/9f*height;
 			for (int i = 0; i < 3; i++ ) {
-				playerPositions[i] = new Vector2(unitPosition.X, unitPosition.Y);
+				playerTeam[i] = new Unit(
+					"", new Stats(defaultStats), 
+					new Vector2(unitPosition.X, unitPosition.Y));
 				unitPosition.Y += height/9f;
 			}
 			graphics.IsFullScreen = false; // for now.
@@ -186,7 +190,7 @@ namespace BattleEngine
 		private void PushInputState(InputState state) {
 			// Initializers
 			if (state == InputState.CoordSelect) {
-				cursorPosition = playerPositions[selectedUnit];
+				cursorPosition = playerTeam[selectedUnit].Position;
 			}
 			
 			// Deactivate current Menu
@@ -209,7 +213,7 @@ namespace BattleEngine
 			
 			// Restore state
 			InputState oldState = menuState.Pop();
-			
+						
 			// Activate new Menu
 			if (menus[(int)menuState.Peek()] != null) {
 				menus[(int)menuState.Peek()].Visible = true;
@@ -378,14 +382,14 @@ namespace BattleEngine
 			// Selected Unit
 			Vector2 drawPosition;
 			if (selectedUnit < playerCount) {
-				drawPosition = playerPositions[selectedUnit];
+				drawPosition = playerTeam[selectedUnit].Position;
 				spriteBatch.Draw (cursor, drawPosition, Color.Yellow);
 			}
 			if (menuState.Peek() == InputState.TargetSelect) {
 				if (selectedTarget < playerCount) {
-					drawPosition = playerPositions[selectedTarget];
+					drawPosition = playerTeam[selectedTarget].Position;
 				} else {
-					drawPosition = enemyPositions[selectedTarget-playerCount];
+					drawPosition = enemyTeam[selectedTarget-playerCount].Position;
 				}
 				spriteBatch.Draw(cursor, drawPosition, Color.Red);
 			}
@@ -399,11 +403,11 @@ namespace BattleEngine
 			spriteBatch.Begin();
 			// Draw Enemy Units
 			for (int i = 0; i < 3; i++ ) {
-				spriteBatch.Draw (unit, enemyPositions[i], Color.White);
+				spriteBatch.Draw (unit, enemyTeam[i].Position, Color.White);
 			}
 			// Draw Player Units
 			for (int i = 0; i < 3; i++ ) {
-				spriteBatch.Draw (unit, playerPositions[i], Color.White);
+				spriteBatch.Draw (unit, playerTeam[i].Position, Color.White);
 			}
 			spriteBatch.End ();
 		}
