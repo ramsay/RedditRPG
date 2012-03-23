@@ -23,7 +23,7 @@ namespace BattleEngine
 		
 		Texture2D background;
 		
-		public static SpriteFont CourierNew;
+		public SpriteFont CourierNew;
 		
 		Vector2 cursorPosition;
 		
@@ -34,12 +34,17 @@ namespace BattleEngine
 		
 		Vector2[] playerPositions = new Vector2[playerCount];
 		
-			
+		
+		static int playTimeLimit = 6; // seconds
+		DateTime playStartTime;
+		
 		int selectedUnit = 0;
 		int selectedTarget = 0;
-		enum MenuStates {UnitSelect, ActionSelect, PositionSelect, 
+		enum GameState {Input, Play};
+		GameState gameState;
+		enum InputState {UnitSelect, ActionSelect, PositionSelect, 
 			TargetSelect, RangeSelect, CoordSelect};
-		Stack<MenuStates> menuState;
+		Stack<InputState> menuState;
 		
 		KeyboardState oldState;
 		
@@ -83,9 +88,9 @@ namespace BattleEngine
 			BattleMenu positionMenu = new BattleMenu(this, new[] {"Charge", "Stay", "Keep Distance", "Run Away", "Done"}, menuPosition);
 			BattleMenu rangeMenu = new BattleMenu(this, new[] {"1m", "2m", "3m", "5m", "8m", "13m", "Done"}, menuPosition);
 			
-			menus[(int)MenuStates.ActionSelect] = actionsMenu;
-			menus[(int)MenuStates.PositionSelect] = positionMenu;
-			menus[(int)MenuStates.RangeSelect] = rangeMenu;
+			menus[(int)InputState.ActionSelect] = actionsMenu;
+			menus[(int)InputState.PositionSelect] = positionMenu;
+			menus[(int)InputState.RangeSelect] = rangeMenu;
 			
 			foreach (BattleMenu menu in menus) {
 				if (menu != null) {
@@ -93,8 +98,9 @@ namespace BattleEngine
 					Components.Add (menu);
 				}
 			}
-			menuState = new Stack<MenuStates>();
-			menuState.Push (MenuStates.UnitSelect);
+			menuState = new Stack<InputState>();
+			menuState.Push (InputState.UnitSelect);
+			gameState = GameState.Input;
 		}
 		
 		protected override void Initialize ()
@@ -120,6 +126,7 @@ namespace BattleEngine
 			cursor = Content.Load<Texture2D> ("cursor.png");
 			background = Content.Load<Texture2D> ("background.png");
 			
+			CourierNew = Content.Load<Microsoft.Xna.Framework.Graphics.SpriteFont>( "Courier New" );
 		}
 		
 		protected override void UnloadContent ()
@@ -138,9 +145,34 @@ namespace BattleEngine
 			if (GamePad.GetState (PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
 				this.Exit ();
 			KeyboardState newState = Keyboard.GetState ();
-			UpdateMenu(newState, gameTime);
+			switch (gameState) {
+			case GameState.Play:
+				UpdatePlay(newState, gameTime);
+				break;
+			case GameState.Input:
+			default:
+				UpdateMenu(newState, gameTime);
+				break;
+			}
 			oldState = newState;
 			base.Update (gameTime);
+		}
+		
+		private void InitiateInput() {
+			gameState = GameState.Input;
+		}
+		
+		private void InitiatePlay(GameTime gameTime) {
+			gameState = GameState.Play;
+			playStartTime = DateTime.Now;
+		}
+		
+		private void UpdatePlay(KeyboardState newState, GameTime gameTime) {
+			if (DateTime.Now.Subtract(playStartTime).TotalSeconds >= playTimeLimit) {
+				InitiateInput();
+				return;
+			}
+			
 		}
 		
 		private bool IsPressed(KeyboardState newState, Keys key)
@@ -151,9 +183,9 @@ namespace BattleEngine
 			return false;
 		}
 		
-		private void PushMenuState(MenuStates state) {
+		private void PushInputState(InputState state) {
 			// Initializers
-			if (state == MenuStates.CoordSelect) {
+			if (state == InputState.CoordSelect) {
 				cursorPosition = playerPositions[selectedUnit];
 			}
 			
@@ -169,14 +201,14 @@ namespace BattleEngine
 			menuState.Push (state);
 		}
 		
-		private MenuStates PopMenuState() {
+		private InputState PopInputState() {
 			// Deactivate current Menu
 			if (menus[(int)menuState.Peek ()] != null) {
 				menus[(int)menuState.Peek ()].Visible = false;
 			}
 			
 			// Restore state
-			MenuStates oldState = menuState.Pop();
+			InputState oldState = menuState.Pop();
 			
 			// Activate new Menu
 			if (menus[(int)menuState.Peek()] != null) {
@@ -196,9 +228,9 @@ namespace BattleEngine
 		protected void UpdateMenu(KeyboardState newState, GameTime gameTime)
 		{
 			switch (menuState.Peek ()) {
-			case MenuStates.CoordSelect:
+			case InputState.CoordSelect:
 				if (IsPressed(newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					PopMenuState();
+					PopInputState();
 				} else {
 					if (newState.IsKeyDown(Keys.Up)) {
 						cursorPosition.Y -= 1;
@@ -214,13 +246,13 @@ namespace BattleEngine
 					}
 				}
 				break;
-			case MenuStates.RangeSelect:
+			case InputState.RangeSelect:
 				if ( IsPressed (newState, Keys.Left)) {
-					menus[(int)MenuStates.RangeSelect].selectPrevious();
+					menus[(int)InputState.RangeSelect].selectPrevious();
 				} else if (IsPressed (newState, Keys.Right)) {
-					menus[(int)MenuStates.RangeSelect].selectNext();
+					menus[(int)InputState.RangeSelect].selectNext();
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					int selected = menus[(int)MenuStates.RangeSelect].getSelected();
+					int selected = menus[(int)InputState.RangeSelect].getSelected();
 					if (selected < 6) {
 						// Range list is a fibonacii series: 1, 2, 3, 5, 8, 13
 						int a = 1;
@@ -230,73 +262,77 @@ namespace BattleEngine
 							distance += a;
 							a = temp;
 						}
-						PushMenuState(MenuStates.TargetSelect);
+						PushInputState(InputState.TargetSelect);
 					} else { // Done
-						PopMenuState();
+						PopInputState();
 					}
 				}
 				break;
-			case MenuStates.TargetSelect:
+			case InputState.TargetSelect:
 				int unitCount = enemyCount + playerCount;
 				if ( IsPressed (newState, Keys.Up) || IsPressed (newState, Keys.Left)) {
 					selectedTarget = (selectedTarget + unitCount -1) % unitCount;
 				} else if (IsPressed (newState, Keys.Down) || IsPressed (newState, Keys.Right)) {
 					selectedTarget = ++selectedTarget % unitCount;
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					PopMenuState();
+					PopInputState();
 				}
 				break;
-			case MenuStates.PositionSelect:
+			case InputState.PositionSelect:
 				if ( IsPressed (newState, Keys.Left)) {
-					menus[(int)MenuStates.PositionSelect].selectPrevious();
+					menus[(int)InputState.PositionSelect].selectPrevious();
 				} else if (IsPressed (newState, Keys.Right)) {
-					menus[(int)MenuStates.PositionSelect].selectNext();
+					menus[(int)InputState.PositionSelect].selectNext();
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					switch ((PositionState)menus[(int)MenuStates.PositionSelect].getSelected ()) {
+					switch ((PositionState)menus[(int)InputState.PositionSelect].getSelected ()) {
 					case PositionState.Charge:
-						PushMenuState(MenuStates.TargetSelect);
+						PushInputState(InputState.TargetSelect);
 						break;
 					case PositionState.Stay:
-						PushMenuState(MenuStates.CoordSelect);
+						PushInputState(InputState.CoordSelect);
 						break;
 					case PositionState.KeepDistance:
-						PushMenuState(MenuStates.RangeSelect);
+						PushInputState(InputState.RangeSelect);
 						break;
 					case PositionState.RunAway:
 						break;
 					default: // Done
-						PopMenuState();
+						PopInputState();
 						break;
 					}
 				}
 				break;
-			case MenuStates.ActionSelect:
+			case InputState.ActionSelect:
 				if ( IsPressed (newState, Keys.Left)) {
-					menus[(int)MenuStates.ActionSelect].selectPrevious();
+					menus[(int)InputState.ActionSelect].selectPrevious();
 				} else if (IsPressed (newState, Keys.Right)) {
-					menus[(int)MenuStates.ActionSelect].selectNext();
+					menus[(int)InputState.ActionSelect].selectNext();
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					switch ((ActionState)menus[(int)MenuStates.ActionSelect].getSelected ()) {
+					switch ((ActionState)menus[(int)InputState.ActionSelect].getSelected ()) {
 					case ActionState.Attack: // Attack
-						PushMenuState(MenuStates.TargetSelect);
+						PushInputState(InputState.TargetSelect);
 						break;
 					case ActionState.Position: // Position
-						PushMenuState(MenuStates.PositionSelect);
+						PushInputState(InputState.PositionSelect);
 						break;
 					default: // Done
-						PopMenuState();
+						PopInputState();
 						break;
 					}
 				}
 				break;
-			case MenuStates.UnitSelect:
+			case InputState.UnitSelect:
 			default:
 				if ( IsPressed (newState, Keys.Up) || IsPressed (newState, Keys.Left)) {
-					selectedUnit = (selectedUnit + playerCount -1) % playerCount;
+					selectedUnit = (selectedUnit + playerCount ) % (playerCount+1);
 				} else if (IsPressed (newState, Keys.Down) || IsPressed (newState, Keys.Right)) {
-					selectedUnit = ++selectedUnit % playerCount;
+					selectedUnit = ++selectedUnit % (playerCount+1);
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					PushMenuState(MenuStates.ActionSelect);
+					if (selectedUnit < playerCount) {
+						PushInputState(InputState.ActionSelect);
+					} else {
+						InitiatePlay(gameTime);
+					}
 				}
 				break;
 			}
@@ -311,7 +347,18 @@ namespace BattleEngine
 			
 			DrawUnits (gameTime);
 			
-			spriteBatch.End ();
+			if (gameState == GameState.Input && menuState.Peek () == InputState.UnitSelect) {
+				Vector2 menuPosition = new Vector2(
+					1f/16f*GraphicsDevice.DisplayMode.Width,
+					8f/9f*GraphicsDevice.DisplayMode.Height);
+				spriteBatch.Begin ();
+				Color color = Color.White;
+				if (selectedUnit == playerCount) {
+					color = Color.Yellow;
+				}
+				spriteBatch.DrawString (CourierNew, "Play!", menuPosition, color);
+				spriteBatch.End ();
+			}
 			base.Draw (gameTime);
 		}
 		
@@ -330,10 +377,11 @@ namespace BattleEngine
 			spriteBatch.Begin ();
 			// Selected Unit
 			Vector2 drawPosition;
-			drawPosition = playerPositions[selectedUnit];
-			spriteBatch.Draw (cursor, drawPosition, Color.Yellow);
-			
-			if (menuState.Peek() == MenuStates.TargetSelect) {
+			if (selectedUnit < playerCount) {
+				drawPosition = playerPositions[selectedUnit];
+				spriteBatch.Draw (cursor, drawPosition, Color.Yellow);
+			}
+			if (menuState.Peek() == InputState.TargetSelect) {
 				if (selectedTarget < playerCount) {
 					drawPosition = playerPositions[selectedTarget];
 				} else {
@@ -341,7 +389,7 @@ namespace BattleEngine
 				}
 				spriteBatch.Draw(cursor, drawPosition, Color.Red);
 			}
-			if (menuState.Peek () == MenuStates.CoordSelect) {
+			if (menuState.Peek () == InputState.CoordSelect) {
 				spriteBatch.Draw (cursor, cursorPosition, Color.White);
 			}
 			spriteBatch.End ();
