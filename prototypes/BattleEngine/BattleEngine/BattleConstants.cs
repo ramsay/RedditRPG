@@ -20,7 +20,7 @@ namespace BattleEngine
 		public static float AREA_HEIGHT_PIX = AREA_HEIGHT * METRE_TO_PX;
 		
 		public static Vector2 AREA_CENTRE
-			= new Vector2( AREA_WIDTH/2f, AREA_HEIGHT / 2f + 3f );
+			= new Vector2( AREA_WIDTH/2f, (AREA_HEIGHT / 2f) -1f );
 		// Approx height for now
 		
 		public static Vector2 AREA_CENTRE_POSITION

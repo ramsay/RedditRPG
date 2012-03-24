@@ -80,13 +80,6 @@ namespace BattleEngine
 			
 			direction = getDirection(currentPosition, newTarget);
 			
-			Console.WriteLine("Timer update loop ");
-			Console.WriteLine("time: " + time);
-			Console.WriteLine("secondsPassed: " + secondsPassed);
-			Console.WriteLine("direction: " + direction.ToString());
-			Console.WriteLine("speed: " + speed);
-
-
 			if( !result )
 			{
 				Vector2 position = currentPosition + (direction * secondsPassed * speed);
@@ -147,8 +140,8 @@ namespace BattleEngine
 		/// </param>
 		public bool isInArea(Vector2 position) 
 		{
-			float x = (position.X - BattleConstants.AREA_CENTRE_POSITION.X) / BattleConstants.AREA_WIDTH_PIX;
-			float y = (position.Y - BattleConstants.AREA_CENTRE_POSITION.Y) / BattleConstants.AREA_HEIGHT_PIX;
+			float x = (position.X - BattleConstants.AREA_CENTRE_POSITION.X) / (BattleConstants.AREA_WIDTH_PIX / 2f);
+			float y = (position.Y - BattleConstants.AREA_CENTRE_POSITION.Y) / (BattleConstants.AREA_HEIGHT_PIX / 2f);
 			
 		    return  ( (x * x) + (y * y) ) <= 1;
 		}
