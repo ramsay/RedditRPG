@@ -12,44 +12,38 @@ namespace BattleEngine
 	public class Game1 : Microsoft.Xna.Framework.Game
 	{
 		GraphicsDeviceManager graphics;
+		RenderTarget2D renderTarget;
+		Vector2 cursorPosition;
+		KeyboardState oldState;
 		
 		SpriteBatch spriteBatch;
-		
-		RenderTarget2D renderTarget;
-		
 		Texture2D unit;
-		
 		Texture2D cursor;
-		
-		Texture2D background;
-		
+		Texture2D background;		
 		public SpriteFont CourierNew;
 		
-		Vector2 cursorPosition;
-		
+		// Game constants
 		static int enemyCount = 3;
 		static int playerCount = 3;
+		static float playTimeLimit = 6; // seconds
+		enum GameState {Input, Play, Win, GameOver};
+		enum InputState {UnitSelect, ActionSelect, PositionSelect, 
+			TargetSelect, RangeSelect, CoordSelect};
+		enum ActionState {Attack, Position};
 		
+		// Battle entities
 		Unit[] enemyTeam = new Unit[enemyCount];
-		
 		Unit[] playerTeam = new Unit[playerCount];
 		
-		static int playTimeLimit = 6; // seconds
+		// Play cycle
 		DateTime playStartTime;
 		
 		int selectedUnit = 0;
 		int selectedTarget = 0;
-		enum GameState {Input, Play};
+		
 		GameState gameState;
-		enum InputState {UnitSelect, ActionSelect, PositionSelect, 
-			TargetSelect, RangeSelect, CoordSelect};
 		Stack<InputState> menuState;
-		
-		KeyboardState oldState;
-		
 		BattleMenu[] menus = new BattleMenu[6];
-		
-		enum ActionState {Attack, Position};
 		
 		public Game1 ()
 		{
@@ -85,6 +79,7 @@ namespace BattleEngine
 			
 			Content.RootDirectory = "Content";
 			
+			// Initialise menu
 			Vector2 menuPosition = new Vector2(
 				1f/16f*width,
 				8f/9f*height);
@@ -148,17 +143,32 @@ namespace BattleEngine
 		{
 			if (GamePad.GetState (PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
 				this.Exit ();
+			
 			KeyboardState newState = Keyboard.GetState ();
-			switch (gameState) {
-			case GameState.Play:
-				UpdatePlay(newState, gameTime);
-				break;
-			case GameState.Input:
-			default:
-				UpdateMenu(newState, gameTime);
-				break;
+			
+			switch (gameState)
+			{
+				case GameState.Win:
+					// TODO: ?
+					gameState = GameState.Input;
+				    break;
+				case GameState.GameOver:
+					// TODO: ?
+					gameState = GameState.Input;
+					break;
+				case GameState.Play:
+					UpdatePlay(newState, gameTime);
+					break;
+				case GameState.Input:
+				default:
+					UpdateMenu(newState, gameTime);
+					break;
 			}
+			
+			
+			// Ketboard State
 			oldState = newState;
+			
 			base.Update (gameTime);
 		}
 		
@@ -186,14 +196,53 @@ namespace BattleEngine
 				enemyTeam[i].WritePositionState();
 				Console.Out.WriteLine();
 			}
+			
+			for (int i = 0; i < playerCount; i++) {
+				playerTeam[i].Movement = new MoveTimer( 0, 6.0f, playerTeam[i].Position, playerTeam[i].AttackTarget.Position, 15 * (i+1));
+			}
 		}
 		
-		private void UpdatePlay(KeyboardState newState, GameTime gameTime) {
-			if (DateTime.Now.Subtract(playStartTime).TotalSeconds >= playTimeLimit) {
-				InitiateInput();
-				return;
+		private bool hasNoSurvivor( Unit[] team )
+		{	
+			foreach( Unit unit in team )
+			{
+				if( unit.CurrentStats.health > 0 )
+				{ return false; }
 			}
 			
+			return true;
+		}
+		
+		private void UpdatePlay(KeyboardState newState, GameTime gameTime)
+		{
+			// Time limit reached
+			if (DateTime.Now.Subtract(playStartTime).TotalSeconds >= playTimeLimit)
+			{
+				//Console.WriteLine("Time limit of play phrase reached");
+				
+				if(hasNoSurvivor(playerTeam)) // TODO: Other conditions? Status, run away etc
+				{
+					gameState = GameState.GameOver;
+				}
+				else if(hasNoSurvivor(enemyTeam))
+				{
+					gameState = GameState.Win;
+				}
+				else
+				{
+					gameState = GameState.Input;
+				}
+				
+				return;
+			}
+			else
+			{
+				//foreach(Unit enemy in enemyTeam)
+				//{ enemy.play(gameTime); }
+				
+				foreach(Unit player in playerTeam)
+				{ player.play(gameTime); }				
+			}
 		}
 		
 		private bool IsPressed(KeyboardState newState, Keys key)
