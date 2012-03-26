@@ -82,7 +82,9 @@ namespace BattleEngine
 			
 			if( !result )
 			{
-				Vector2 position = currentPosition + (direction * secondsPassed * speed);
+				Vector2 position = currentPosition + (
+                    direction * secondsPassed * 
+                    (speed*BattleConstants.METRE_TO_PX));
 				
 				if(isInArea(position))
 				{currentPosition = position;}
@@ -112,7 +114,9 @@ namespace BattleEngine
 			
 			if( !result )
 			{
-				Vector2 position = currentPosition + (direction * secondsPassed * speed);
+				Vector2 position = currentPosition + (
+                    direction * secondsPassed * 
+                    (speed*BattleConstants.METRE_TO_PX));
 				
 				if(isInArea(position))
 				{currentPosition = position;}
