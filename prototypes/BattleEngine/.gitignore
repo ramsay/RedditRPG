@@ -1,3 +1,5 @@
 BattleEngine.userprefs
 *.pidb
 BattleEngine/bin/
+BattleEngine/obj/
+BattleEngine.suo
