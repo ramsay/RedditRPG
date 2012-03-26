@@ -35,6 +35,10 @@ namespace BattleEngine
 		Unit[] enemyTeam = new Unit[enemyCount];
 		Unit[] playerTeam = new Unit[playerCount];
 		
+        //AI
+        AI enemyAI;
+        //AI npcAI;
+
 		// Play cycle
 		DateTime playStartTime;
 		
@@ -97,13 +101,13 @@ namespace BattleEngine
         {
             oldState = Keyboard.GetState();
 
-            Stats defaultStats = new Stats(2.68F, 5, 5, 10);
+            Stats defaultStats = new Stats(2.68F, 20, 5, 10);
             Vector2 unitPosition = new Vector2(
                 4f / 16f * BattleConstants.SCREEN_WIDTH,
                 3f / 9f * BattleConstants.SCREEN_HEIGHT);
 
             // Initialize enemy positions
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < enemyCount; i++)
             {
                 enemyTeam[i] = new Unit(
                     "", defaultStats,
@@ -114,12 +118,18 @@ namespace BattleEngine
             // Initialize player positions
             unitPosition.X = 12f / 16f * BattleConstants.SCREEN_WIDTH;
             unitPosition.Y = 3f / 9f * BattleConstants.SCREEN_HEIGHT;
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < playerCount; i++)
             {
                 playerTeam[i] = new Unit(
                     "", defaultStats,
                     new Vector2(unitPosition.X, unitPosition.Y));
                 unitPosition.Y += BattleConstants.SCREEN_HEIGHT / 9f;
+            }
+
+            // Initialize AI
+            enemyAI = new AI(enemyTeam, playerTeam);
+            foreach(Unit unit in enemyTeam) {
+                unit.intelligence = enemyAI.Agressive;
             }
 
             foreach (BattleMenu menu in menus)
@@ -205,12 +215,13 @@ namespace BattleEngine
 		
 		private void InitiatePlay(GameTime gameTime) {
 			gameState = GameState.Play;
-			playStartTime = DateTime.Now;
-			
-            foreach (Unit unit in playerTeam)
-            {
+            foreach (Unit unit in enemyTeam) {
                 unit.InitializePlayState();
             }
+            foreach (Unit unit in playerTeam) {
+                unit.InitializePlayState();
+            }
+            playStartTime = DateTime.Now;
 		}
 		
 		private bool hasNoSurvivor( Unit[] team )
@@ -249,8 +260,8 @@ namespace BattleEngine
 			}
 			else
 			{
-				//foreach(Unit enemy in enemyTeam)
-				//{ enemy.play(gameTime); }
+				foreach(Unit enemy in enemyTeam)
+				{ enemy.play(gameTime); }
 				
 				foreach(Unit player in playerTeam)
 				{ player.play(gameTime); }				

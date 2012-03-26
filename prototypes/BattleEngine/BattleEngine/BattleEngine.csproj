@@ -32,6 +32,7 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
+    <Compile Include="AI.cs" />
     <Compile Include="MoveTimer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game.cs" />

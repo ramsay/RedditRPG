@@ -25,7 +25,10 @@ namespace BattleEngine
 		public Vector2 Position {
 			get { return position; }
 		}
-		
+
+        // May or may not be set.
+        public Intelligence intelligence;
+
 		private bool attackCompleted;
 		private bool attackState;
 		private Unit attackTarget;
@@ -129,6 +132,9 @@ namespace BattleEngine
 		}
 
 		public void InitializePlayState() {
+            if (intelligence != null) {
+                intelligence(this);
+            }
 			attackCompleted = false;
             if (attackState)
             {
