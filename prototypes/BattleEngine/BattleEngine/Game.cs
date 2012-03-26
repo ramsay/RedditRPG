@@ -44,49 +44,33 @@ namespace BattleEngine
 		GameState gameState;
 		Stack<InputState> menuState;
 		BattleMenu[] menus = new BattleMenu[6];
+
+        BattleMenu endGameMenu;
 		
 		public Game1 ()
 		{
 			graphics = new GraphicsDeviceManager(this);
 			
-			// 16:9 Aspect ratio
-			float width = 854, height = 480;
+            graphics.PreferredBackBufferWidth = (int)BattleConstants.SCREEN_WIDTH;
+			graphics.PreferredBackBufferHeight = (int)BattleConstants.SCREEN_HEIGHT;
 			
-			graphics.PreferredBackBufferWidth = (int)width;
-			graphics.PreferredBackBufferHeight = (int)height;
-			
-			Stats defaultStats = new Stats(5,50,5,10);
-			Vector2 unitPosition = new Vector2(4f/16f*width, 3f/9f*height);
-			
-			// Initialize enemy positions
-			for (int i = 0; i < 3; i++ ) {
-				enemyTeam[i] = new Unit(
-					"", new Stats(defaultStats), 
-					new Vector2(unitPosition.X, unitPosition.Y)
-					);
-				unitPosition.Y += height/9f;
-			}
-			// Initialize player positions
-			unitPosition.X = 12f/16f*width;
-			unitPosition.Y = 3f/9f*height;
-			for (int i = 0; i < 3; i++ ) {
-				playerTeam[i] = new Unit(
-					"", new Stats(defaultStats), 
-					new Vector2(unitPosition.X, unitPosition.Y));
-				unitPosition.Y += height/9f;
-			}
 			graphics.IsFullScreen = false; // for now.
 			
 			Content.RootDirectory = "Content";
 			
 			// Initialise menu
 			Vector2 menuPosition = new Vector2(
-				1f/16f*width,
-				8f/9f*height);
-			BattleMenu actionsMenu = new BattleMenu(this, new[] {"Attack", "Position", "Done"}, menuPosition);
-			BattleMenu positionMenu = new BattleMenu(this, new[] {"Charge", "Stay", "Keep Distance", "Run Away", "Done"}, menuPosition);
-			BattleMenu rangeMenu = new BattleMenu(this, new[] {"1m", "2m", "3m", "5m", "8m", "13m", "Done"}, menuPosition);
-			
+				1f/16f*BattleConstants.SCREEN_WIDTH,
+				8f/9f*BattleConstants.SCREEN_HEIGHT);
+			BattleMenu actionsMenu = new BattleMenu(
+                this, new[] {"Attack", "Position", "Done"}, menuPosition);
+			BattleMenu positionMenu = new BattleMenu(
+                this, new[] {"Charge", "Stay", "Keep Distance", "Run Away", 
+                    "Done"}, menuPosition);
+			BattleMenu rangeMenu = new BattleMenu(
+                this, new[] {"1m", "2m", "3m", "5m", "8m", "13m", "Done"}, 
+                menuPosition);
+            
 			menus[(int)InputState.ActionSelect] = actionsMenu;
 			menus[(int)InputState.PositionSelect] = positionMenu;
 			menus[(int)InputState.RangeSelect] = rangeMenu;
@@ -96,17 +80,60 @@ namespace BattleEngine
 					menu.Visible = false;
 					Components.Add (menu);
 				}
-			}
-			menuState = new Stack<InputState>();
-			menuState.Push (InputState.UnitSelect);
-			gameState = GameState.Input;
+            }            
+
+            endGameMenu = new BattleMenu(
+                this, new[] { "Play Again?", "Quit" }, menuPosition);
+            Components.Add(endGameMenu);
 		}
 		
 		protected override void Initialize ()
 		{
-			base.Initialize();	
-			oldState = Keyboard.GetState ();
+			base.Initialize();
+            Reset();
 		}
+
+        private void Reset()
+        {
+            oldState = Keyboard.GetState();
+
+            Stats defaultStats = new Stats(2.68F, 5, 5, 10);
+            Vector2 unitPosition = new Vector2(
+                4f / 16f * BattleConstants.SCREEN_WIDTH,
+                3f / 9f * BattleConstants.SCREEN_HEIGHT);
+
+            // Initialize enemy positions
+            for (int i = 0; i < 3; i++)
+            {
+                enemyTeam[i] = new Unit(
+                    "", defaultStats,
+                    new Vector2(unitPosition.X, unitPosition.Y)
+                    );
+                unitPosition.Y += BattleConstants.SCREEN_HEIGHT / 9f;
+            }
+            // Initialize player positions
+            unitPosition.X = 12f / 16f * BattleConstants.SCREEN_WIDTH;
+            unitPosition.Y = 3f / 9f * BattleConstants.SCREEN_HEIGHT;
+            for (int i = 0; i < 3; i++)
+            {
+                playerTeam[i] = new Unit(
+                    "", defaultStats,
+                    new Vector2(unitPosition.X, unitPosition.Y));
+                unitPosition.Y += BattleConstants.SCREEN_HEIGHT / 9f;
+            }
+
+            foreach (BattleMenu menu in menus)
+            {
+                if (menu != null)
+                {
+                    menu.Visible = false;
+                }
+            }
+            endGameMenu.Visible = false;
+            menuState = new Stack<InputState>();
+            menuState.Push(InputState.UnitSelect);
+            gameState = GameState.Input;
+        }
 		
 		protected override void LoadContent ()
 		{
@@ -150,11 +177,11 @@ namespace BattleEngine
 			{
 				case GameState.Win:
 					// TODO: ?
-					gameState = GameState.Input;
+                    UpdateEndGame(newState, gameTime);
 				    break;
 				case GameState.GameOver:
 					// TODO: ?
-					gameState = GameState.Input;
+                    UpdateEndGame(newState, gameTime);
 					break;
 				case GameState.Play:
 					UpdatePlay(newState, gameTime);
@@ -179,27 +206,11 @@ namespace BattleEngine
 		private void InitiatePlay(GameTime gameTime) {
 			gameState = GameState.Play;
 			playStartTime = DateTime.Now;
-			Console.Out.WriteLine ("Play initiated at {0}", playStartTime);
 			
-			Console.Out.WriteLine ("Player unit's state:");
-			for (int i = 0; i < playerCount; i++) {
-				Console.Out.Write ("Unit[{0}]: ", i);
-				playerTeam[i].WriteAttackState();
-				playerTeam[i].WritePositionState();
-				Console.Out.WriteLine();
-			}
-			
-			Console.Out.WriteLine ("Enemy unit's state:");
-			for (int i = 0; i < playerCount; i++) {
-				Console.Out.Write ("Enemy[{0}]: ", i);
-				enemyTeam[i].WriteAttackState();
-				enemyTeam[i].WritePositionState();
-				Console.Out.WriteLine();
-			}
-			
-			for (int i = 0; i < playerCount; i++) {
-				playerTeam[i].Movement = new MoveTimer( 0, 6.0f, playerTeam[i].Position, playerTeam[i].AttackTarget.Position, 15 * (i+1));
-			}
+            foreach (Unit unit in playerTeam)
+            {
+                unit.InitializePlayState();
+            }
 		}
 		
 		private bool hasNoSurvivor( Unit[] team )
@@ -213,19 +224,20 @@ namespace BattleEngine
 			return true;
 		}
 		
-		private void UpdatePlay(KeyboardState newState, GameTime gameTime)
+        private void UpdatePlay(KeyboardState newState, GameTime gameTime)
 		{
 			// Time limit reached
 			if (DateTime.Now.Subtract(playStartTime).TotalSeconds >= playTimeLimit)
 			{
-				//Console.WriteLine("Time limit of play phrase reached");
 				
 				if(hasNoSurvivor(playerTeam)) // TODO: Other conditions? Status, run away etc
 				{
+                    endGameMenu.Visible = true;
 					gameState = GameState.GameOver;
 				}
 				else if(hasNoSurvivor(enemyTeam))
 				{
+                    endGameMenu.Visible = true;
 					gameState = GameState.Win;
 				}
 				else
@@ -275,21 +287,21 @@ namespace BattleEngine
 			switch (menuState.Peek()) {
 			case InputState.ActionSelect: //Attack
 				if (selectedTarget < playerCount) {
-					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget]);
+					playerTeam[selectedUnit].setAttackTarget(playerTeam[selectedTarget]);
 				} else {
 					playerTeam[selectedUnit].setAttackTarget(enemyTeam[selectedTarget-playerCount]);
 				}
 				break;
 			case InputState.PositionSelect: // Charge
 				if (selectedTarget < playerCount) {
-					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
+					playerTeam[selectedUnit].setPositionTarget(playerTeam[selectedTarget]);
 				} else {
 					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget-playerCount]);
 				}
 				break;
 			case InputState.RangeSelect: // Keep at Distance
 				if (selectedTarget < playerCount) {
-					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget]);
+					playerTeam[selectedUnit].setPositionTarget(playerTeam[selectedTarget]);
 				} else {
 					playerTeam[selectedUnit].setPositionTarget(enemyTeam[selectedTarget-playerCount]);
 				}
@@ -443,9 +455,11 @@ namespace BattleEngine
 					selectedUnit = (selectedUnit + playerCount ) % (playerCount+1);
 				} else if (IsPressed (newState, Keys.Down) || IsPressed (newState, Keys.Right)) {
 					selectedUnit = ++selectedUnit % (playerCount+1);
-				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					if (selectedUnit < playerCount) {
-						PushInputState(InputState.ActionSelect);
+				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter) ) {
+                    if (selectedUnit < playerCount ) {
+                        if (playerTeam[selectedUnit].CurrentStats.health > 0) {
+                            PushInputState(InputState.ActionSelect);
+                        }
 					} else {
 						InitiatePlay(gameTime);
 					}
@@ -454,7 +468,28 @@ namespace BattleEngine
 			}
 			
 		}
-		
+
+        private void UpdateEndGame(KeyboardState newState, GameTime gameTime)
+        {
+            if (IsPressed(newState, Keys.Left)) {
+                endGameMenu.selectPrevious();
+            } else if (IsPressed(newState, Keys.Right)) {
+                endGameMenu.selectNext();
+            }
+            else if (IsPressed(newState, Keys.Space) || IsPressed(newState, Keys.Enter)) {
+                switch (endGameMenu.getSelected()) {
+                case 0: // Play again
+                    Reset();
+                    break;
+                case 1: // Quit
+                default:
+                    this.Exit();
+                    break;
+
+                }
+            }
+        }
+
 		protected override void Draw (GameTime gameTime)
 		{
 			DrawBackground(gameTime);
@@ -462,7 +497,18 @@ namespace BattleEngine
 			DrawCursors (gameTime);
 			
 			DrawUnits (gameTime);
-			
+
+            if (gameState == GameState.GameOver) {
+                spriteBatch.Begin();
+                spriteBatch.DrawString(CourierNew, "You lose!", Vector2.Zero, Color.Red);
+                spriteBatch.End();
+            }
+            if (gameState == GameState.Win) {
+                spriteBatch.Begin();
+                spriteBatch.DrawString(CourierNew, "You Win!", Vector2.Zero, Color.Green);
+                spriteBatch.End();
+            }
+
 			if (gameState == GameState.Input && menuState.Peek () == InputState.UnitSelect) {
 				Vector2 menuPosition = new Vector2(
 					1f/16f*GraphicsDevice.DisplayMode.Width,
@@ -514,12 +560,23 @@ namespace BattleEngine
 		protected void DrawUnits(GameTime gameTime) {
 			spriteBatch.Begin();
 			// Draw Enemy Units
+            Color unitFilter = Color.White;
 			for (int i = 0; i < 3; i++ ) {
-				spriteBatch.Draw (unit, enemyTeam[i].Position, Color.White);
+                if (enemyTeam[i].CurrentStats.health < 1) {
+                    unitFilter = Color.Red;
+                } else {
+                    unitFilter = Color.White;
+                }
+				spriteBatch.Draw (unit, enemyTeam[i].Position, unitFilter);
 			}
 			// Draw Player Units
 			for (int i = 0; i < 3; i++ ) {
-				spriteBatch.Draw (unit, playerTeam[i].Position, Color.White);
+                if (playerTeam[i].CurrentStats.health < 1) {
+                    unitFilter = Color.Red;
+                } else {
+                    unitFilter = Color.White;
+                }
+				spriteBatch.Draw (unit, playerTeam[i].Position, unitFilter);
 			}
 			spriteBatch.End ();
 		}
