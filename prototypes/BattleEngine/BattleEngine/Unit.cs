@@ -54,7 +54,7 @@ namespace BattleEngine
 		{
 			this.name = name;
 			this.stats = stats;
-			this.currentStats = new Stats(stats.speed, stats.health, stats.defense, stats.strength);
+			this.currentStats = stats;
 			this.position = position;
 			this.attackState = false;
 			
@@ -112,8 +112,7 @@ namespace BattleEngine
 		public void damage(int attack) {
 			int dam = attack - stats.defense;
 			if (dam > 0) {
-				//stats.health = Math.Max(stats.health - dam, 0);
-				currentStats.health = Math.Max(stats.health - dam, 0);
+				currentStats.health = Math.Max(currentStats.health - dam, 0);
 			}
 		}
 		
@@ -123,14 +122,26 @@ namespace BattleEngine
 			position = movement.CurrentPosition;
 		}
 		
-		private void moveDirection(GameTime gameTime, Vector2 target)
+		private void moveDirection(GameTime gameTime, Vector2 direction)
 		{
-			movement.UpdateDirection((float) gameTime.ElapsedGameTime.TotalSeconds, target);
+			movement.UpdateDirection((float) gameTime.ElapsedGameTime.TotalSeconds, direction);
 			position = movement.CurrentPosition;
 		}
 
-		public void InitizePlayState() {
+		public void InitializePlayState() {
 			attackCompleted = false;
+            if (attackState)
+            {
+                this.movement = new MoveTimer(
+                    0, 6.0f, this.position, this.AttackTarget.Position,
+                    this.stats.speed);
+            }
+            else
+            {
+                this.movement = new MoveTimer(
+                    0, 6.0f, this.position, this.positionTarget.Position,
+                    this.stats.speed);
+            }
 		}
 		
 		public void play(GameTime gameTime) {
@@ -153,6 +164,7 @@ namespace BattleEngine
 		
 		private void moveToPosition(GameTime gameTime)
 		{
+            float error = 0.3f * BattleConstants.METRE_TO_PX;  // For now
 			switch(positionState)
 			{
 				case PositionState.Charge:
@@ -160,7 +172,7 @@ namespace BattleEngine
 					break;
 				case PositionState.KeepDistance:
 					float distanceToTarget = Vector2.Distance( positionTarget.Position, position );
-					float error = 0.3f * BattleConstants.METRE_TO_PX;  // For now
+					
 				
 					if( distanceToTarget > (keepDistancePx + error))
 					{ move(gameTime, positionTarget.Position); }
@@ -184,7 +196,10 @@ namespace BattleEngine
 					// TODO: Need feedback for units that reached edge of battle area
 					break;				
 				case PositionState.Stay:
-					move(gameTime, positionTarget.Position);
+                    // Stay uses a static position
+                    if (Vector2.Distance(position, positionTarget.Position) > error) {
+                        move(gameTime, positionTarget.Position);
+                    }
 					break;
 			}
 			
