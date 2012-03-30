@@ -15,6 +15,7 @@ namespace BattleEngine
 		RenderTarget2D renderTarget;
 		Vector2 cursorPosition;
 		KeyboardState oldState;
+        MouseState oldMouseState;
 		
 		SpriteBatch spriteBatch;
 		Texture2D unit;
@@ -50,6 +51,7 @@ namespace BattleEngine
 		BattleMenu[] menus = new BattleMenu[6];
 
         BattleMenu endGameMenu;
+		StatsMenu statsMenu;
 		
 		public Game1 ()
 		{
@@ -89,6 +91,10 @@ namespace BattleEngine
             endGameMenu = new BattleMenu(
                 this, new[] { "Play Again?", "Quit" }, menuPosition);
             Components.Add(endGameMenu);
+			
+			statsMenu = new StatsMenu(this);
+			
+			this.IsMouseVisible = true;
 		}
 		
 		protected override void Initialize ()
@@ -100,6 +106,7 @@ namespace BattleEngine
         private void Reset()
         {
             oldState = Keyboard.GetState();
+			oldMouseState = Mouse.GetState();
 
             Stats defaultStats = new Stats(2.68F, 20, 5, 10);
             Vector2 unitPosition = new Vector2(
@@ -186,11 +193,9 @@ namespace BattleEngine
 			switch (gameState)
 			{
 				case GameState.Win:
-					// TODO: ?
                     UpdateEndGame(newState, gameTime);
 				    break;
 				case GameState.GameOver:
-					// TODO: ?
                     UpdateEndGame(newState, gameTime);
 					break;
 				case GameState.Play:
@@ -202,8 +207,10 @@ namespace BattleEngine
 					break;
 			}
 			
+			// Check if statsMenu should be displayed
+			CheckMouseInput();
 			
-			// Ketboard State
+			// Keyboard State
 			oldState = newState;
 			
 			base.Update (gameTime);
@@ -213,6 +220,63 @@ namespace BattleEngine
 			gameState = GameState.Input;
 		}
 		
+		/// <summary>
+		/// Checks the if a unit has been selected and the unit's stats
+		/// </summary>
+		private void CheckMouseInput()
+		{
+			MouseState currentMouseState = Mouse.GetState();
+			
+			// If player clicked on something
+			if( currentMouseState.LeftButton == ButtonState.Released
+			    && oldMouseState.LeftButton == ButtonState.Pressed )
+			{	
+				bool unitSelected = false;
+				
+				// Ckecks if clicked on emeny
+				foreach(Unit enemy in enemyTeam)
+				{
+					if(MouseHitUnit(currentMouseState.X, currentMouseState.Y, enemy.Position))
+					{
+						statsMenu.setSelectedUnit(enemy);
+						statsMenu.StatsVisible = true;
+						unitSelected = true;
+						break;
+					}
+				}
+				
+				// Checks if clicked on player
+				if(!unitSelected)
+				{
+					foreach(Unit player in playerTeam)
+					{
+						if(MouseHitUnit(currentMouseState.X, currentMouseState.Y, player.Position))
+						{
+							statsMenu.setSelectedUnit(player);
+							statsMenu.StatsVisible = true;
+							unitSelected = true;
+							break;
+						}
+					}
+				}
+				
+				// Turn the menu off if have not selected on anything
+				if(!unitSelected)
+				{
+					statsMenu.StatsVisible = false;
+				}
+			}		    
+			
+			oldMouseState = currentMouseState;
+		}
+		
+		private bool MouseHitUnit( int mousePositionX, int mousePositionY, Vector2 unitPosition )
+		{
+			return mousePositionX >= unitPosition.X && mousePositionX <= unitPosition.X + unit.Width
+				&& mousePositionY >= unitPosition.Y && mousePositionY <= unitPosition.Y + unit.Height;
+			
+		}
+			
 		private void InitiatePlay(GameTime gameTime) {
 			gameState = GameState.Play;
             foreach (Unit unit in enemyTeam) {
@@ -532,6 +596,10 @@ namespace BattleEngine
 				spriteBatch.DrawString (CourierNew, "Play!", menuPosition, color);
 				spriteBatch.End ();
 			}
+			
+			if(statsMenu.StatsVisible)
+			{ statsMenu.Draw(spriteBatch); }
+			
 			base.Draw (gameTime);
 		}
 		
