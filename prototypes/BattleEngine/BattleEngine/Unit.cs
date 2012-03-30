@@ -65,7 +65,7 @@ namespace BattleEngine
 			this.positionTarget = this;
 			
 			//movement = new MoveTimer(0,6.0f, position, position, stats.speed);
-			movement = new MoveTimer(0,6.0f, position, position, 20);
+			movement = new MoveTimer(0,6.0f, position, position, currentStats.speed);
 		}
 		
 		/// <summary>

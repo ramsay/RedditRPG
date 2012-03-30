@@ -41,24 +41,24 @@ namespace BattleEngine
 			{
 				spriteBatch.Begin();
 				
-				Vector2 position = new Vector2(selectedUnit.Position.X, selectedUnit.Position.Y - 110);
-				int yDiff = 24;
+				Vector2 position = new Vector2(0,0);
+				int yDiff = 26;
 				
 				// TODO: Correct this abomination coding & Offside Text?
 				
 				//if(selectedUnit.Position.Y < BattleConstants.AREA_HEIGHT_PIX / 2)
 				//{ position.Y += 200; }
 				
-				spriteBatch.DrawString (font, "Health: " + selectedUnit.Stats.health, position, textColor );
+				spriteBatch.DrawString (font, "Health: " + selectedUnit.CurrentStats.health + " (" + selectedUnit.Stats.health + ")", position, textColor );
 				position.Y += yDiff;
 
-				spriteBatch.DrawString (font, "Strength: " + selectedUnit.Stats.strength, position, textColor);
+				spriteBatch.DrawString (font, "Strength: " + selectedUnit.CurrentStats.strength + " (" + selectedUnit.Stats.strength + ")", position, textColor);
 				position.Y += yDiff;
 
-				spriteBatch.DrawString (font, "Defense: " + selectedUnit.Stats.defense, position, textColor);
+				spriteBatch.DrawString (font, "Defense: " + selectedUnit.CurrentStats.defense + " (" + selectedUnit.Stats.defense + ")", position, textColor);
 				position.Y += yDiff;
 
-				spriteBatch.DrawString (font, "Speed: " + selectedUnit.Stats.speed, position, textColor);
+				spriteBatch.DrawString (font, "Speed: " + selectedUnit.CurrentStats.speed + " (" + selectedUnit.Stats.speed + ")", position, textColor);
 
 			    spriteBatch.End();
 			}
