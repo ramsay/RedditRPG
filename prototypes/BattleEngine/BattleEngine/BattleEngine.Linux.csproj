@@ -43,6 +43,7 @@
     <Compile Include="PositionState.cs" />
     <Compile Include="BattleConstants.cs" />
     <Compile Include="StatsMenu.cs" />
+    <Compile Include="AttackTimer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
