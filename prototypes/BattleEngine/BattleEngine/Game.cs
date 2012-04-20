@@ -586,8 +586,8 @@ namespace BattleEngine
 
 			if (gameState == GameState.Input && menuState.Peek () == InputState.UnitSelect) {
 				Vector2 menuPosition = new Vector2(
-					1f/16f*GraphicsDevice.DisplayMode.Width,
-					8f/9f*GraphicsDevice.DisplayMode.Height);
+					1f/16f*BattleConstants.SCREEN_WIDTH,
+					8f/9f*BattleConstants.SCREEN_HEIGHT);
 				spriteBatch.Begin ();
 				Color color = Color.White;
 				if (selectedUnit == playerCount) {
