@@ -239,6 +239,66 @@ namespace BattleEngine
 				break;
 			}
 		}
+		/**
+		 * Attack: [actor, target] 
+		 *     Skill:  [actor, target(optional)]
+		 *     Change: Not an Action, just a menu option
+		 *     Guard:  [actor]
+		 *     Item:   [actor, target, item]
+		 *     Escape: [actor]
+		 */
+		public void attack(Unit target, IUseable useable)
+		{
+		}
+		
+		public interface IUseable {
+			string Name();
+			string Description();
+		}
+		
+		public class Useable : IUseable {
+			string _name;
+			string _description;
+			public Useable(string name, string description) { _name = name; _description = description; }
+			public string Name() { return _name; }
+			public string Description() { return _description; }
+		}
+		public class Skill : Useable {
+			public Skill (string name, string description) : base(name, description) {
+			}
+		}
+		
+		public void useSkill(Unit target, IUseable skill)
+		{
+		}
+		
+		public void guard(Unit target, IUseable usable)
+		{
+		}
+		
+		public class Item : Useable {
+			public Item (string name, string description) : base (name, description) {
+			}
+		}
+		
+		public void useItem(Unit target, IUseable item)
+		{
+		}
+		
+		public void escape(Unit target, IUseable usable)
+		{
+		}
+		
+		public delegate void Action(Unit target, IUseable usable);
+		public void syntaxCheck()
+		{
+			Unit u = new Unit(Vector2.Zero);
+			Action a = new Action(u.attack);
+			Action s = new Action(u.useSkill);
+			Action i = new Action(u.useItem);
+			Action g = new Action(u.guard);
+			Action e = new Action(u.escape);
+		}
 	}
 }
 

@@ -9,7 +9,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>BattleEngine</RootNamespace>
     <AssemblyName>BattleEngine</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,6 +43,7 @@
     <Compile Include="BattleConstants.cs" />
     <Compile Include="StatsMenu.cs" />
     <Compile Include="AttackTimer.cs" />
+    <Compile Include="BattleQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />
