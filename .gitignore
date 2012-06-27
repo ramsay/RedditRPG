@@ -1,0 +1,12 @@
+*.user
+*.suo
+*.pdb
+*.exe
+*.obj
+*.cache
+*.manifest
+
+prototypes/MapEngine/MapEngine/obj/*
+prototypes/MapEngine/MapEngine/bin/*
+prototypes/BattleEngine/BattleEngine/obj/*
+prototypes/BattleEngine/BattleEngine/bin/*
