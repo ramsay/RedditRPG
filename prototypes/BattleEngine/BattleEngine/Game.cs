@@ -25,7 +25,6 @@ namespace BattleEngine
 		// Game constants
 		static int enemyCount = 3;
 		static int playerCount = 3;
-		static float playTimeLimit = 6; // seconds
 		enum GameState {Input, Play, Win, GameOver};
 		enum InputState {ActionSelect, SkillSelect, ItemSelect, ChangeSelect, 
 			TargetSelect};
@@ -37,17 +36,25 @@ namespace BattleEngine
 		
         //AI
         AI enemyAI;
-        //AI npcAI;
-
-		// Play cycle
-		DateTime playStartTime;
-		
+        
 		int selectedUnit = 0;
 		int selectedTarget = 0;
 		
 		GameState gameState;
+		/// <summary>
+		/// The state of the menu.
+		/// Action
+		///   Attack -> TargetSelect -> Done
+		///   Skill  -> SkillSelect  -> TargetSelect -> Done
+		///   Item   -> ItemSelect   -> TargetSelect -> Done
+		///   Change -> ChangeSelect -> Done
+		///   Guard  -> Done
+		///   Escape -> Done
+		/// </summary>
 		Stack<InputState> menuState;
-		BattleMenu[] menus = new BattleMenu[6];
+		BattleMenu[] menus = new BattleMenu[5];
+		BattleQueue queue;
+		BattleQueue.Turn currentTurn;
 
         BattleMenu endGameMenu;
 		StatsMenu statsMenu;
@@ -74,6 +81,14 @@ namespace BattleEngine
             
 			menus[(int)InputState.ActionSelect] = actionsMenu;
 			
+			menus[(int)InputState.SkillSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
+			
+			menus[(int)InputState.ItemSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
+			
+			menus[(int)InputState.TargetSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
+			
+			menus[(int)InputState.ChangeSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
+			
 			foreach (BattleMenu menu in menus) {
 				if (menu != null) {
 					menu.Visible = false;
@@ -84,6 +99,9 @@ namespace BattleEngine
             endGameMenu = new BattleMenu(
                 this, new[] { "Play Again?", "Quit" }, menuPosition);
             Components.Add(endGameMenu);
+			
+			queue = new BattleQueue(this, playerTeam, enemyTeam, 10);
+			Components.Add (queue);
 			
 			statsMenu = new StatsMenu(this);
 			
@@ -110,7 +128,7 @@ namespace BattleEngine
             for (int i = 0; i < enemyCount; i++)
             {
                 enemyTeam[i] = new Unit(
-                    "", defaultStats,
+                    "Enemy", defaultStats,
                     new Vector2(unitPosition.X, unitPosition.Y)
                     );
                 unitPosition.Y += BattleConstants.SCREEN_HEIGHT / 9f;
@@ -121,11 +139,13 @@ namespace BattleEngine
             for (int i = 0; i < playerCount; i++)
             {
                 playerTeam[i] = new Unit(
-                    "", defaultStats,
+                    "Player", defaultStats,
                     new Vector2(unitPosition.X, unitPosition.Y));
                 unitPosition.Y += BattleConstants.SCREEN_HEIGHT / 9f;
             }
-
+			queue.Initialize();
+			queue.Visible = true;
+			
             // Initialize AI
             enemyAI = new AI(enemyTeam, playerTeam);
             foreach(Unit unit in enemyTeam) {
@@ -278,7 +298,6 @@ namespace BattleEngine
             foreach (Unit unit in playerTeam) {
                 unit.InitializePlayState();
             }
-            playStartTime = DateTime.Now;
 		}
 		
 		private bool hasNoSurvivor( Unit[] team )
@@ -294,9 +313,10 @@ namespace BattleEngine
 		
         private void UpdatePlay(KeyboardState newState, GameTime gameTime)
 		{
-			// Time limit reached
-			if (DateTime.Now.Subtract(playStartTime).TotalSeconds >= playTimeLimit)
-			{
+			Queue<BattleQueue.Turn> turns = new Queue<BattleQueue.Turn>(queue.getTurnBlock());
+			if (turns.Count < 1) 
+			{	
+				queue.clearCompleted();
 				
 				if(hasNoSurvivor(playerTeam)) // TODO: Other conditions? Status, run away etc
 				{
@@ -317,11 +337,12 @@ namespace BattleEngine
 			}
 			else
 			{
-				foreach(Unit enemy in enemyTeam)
-				{ enemy.play(gameTime); }
-				
-				foreach(Unit player in playerTeam)
-				{ player.play(gameTime); }				
+				if (currentTurn.Equals (BattleQueue.EmptyTurn) || currentTurn.completed) {
+					currentTurn = turns.Dequeue ();
+					// TODO USE currentTurn.action
+					// TODO animate
+					currentTurn.completed = true;
+				}
 			}
 		}
 		
