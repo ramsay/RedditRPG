@@ -160,57 +160,8 @@ namespace BattleEngine
 					attackCompleted = true;
 				}
 			}
-			// Get into position
-			else if(hasPositionTarget())
-			{
-				moveToPosition(gameTime);
-			}
 		}
 		
-		
-		private void moveToPosition(GameTime gameTime)
-		{
-            float error = 0.3f * BattleConstants.METRE_TO_PX;  // For now
-			switch(positionState)
-			{
-				case PositionState.Charge:
-					move(gameTime, positionTarget.Position);
-					break;
-				case PositionState.KeepDistance:
-					float distanceToTarget = Vector2.Distance( positionTarget.Position, position );
-					
-				
-					if( distanceToTarget > (keepDistancePx + error))
-					{ move(gameTime, positionTarget.Position); }
-					else if( distanceToTarget < (keepDistancePx - error) )
-					{
-						Vector2 direction = Vector2.Subtract(position, positionTarget.Position);
-						direction.Normalize();
-						
-						moveDirection(gameTime, direction );
-					}
-				
-					break;
-				
-				case PositionState.RunAway:
-					// Get direction away from centre of battle area
-					Vector2 runDirection = Vector2.Subtract( position, BattleConstants.AREA_CENTRE_POSITION );
-					runDirection.Normalize();	
-
-					moveDirection(gameTime, runDirection );
-				
-					// TODO: Need feedback for units that reached edge of battle area
-					break;				
-				case PositionState.Stay:
-                    // Stay uses a static position
-                    if (Vector2.Distance(position, positionTarget.Position) > error) {
-                        move(gameTime, positionTarget.Position);
-                    }
-					break;
-			}
-			
-			
-		}
 		
 		public void WriteAttackState() {
 			if (attackState) {
@@ -220,25 +171,6 @@ namespace BattleEngine
 			}
 		}
 		
-		public void WritePositionState() {
-			switch (positionState) {
-			case PositionState.Charge:
-				Console.Out.Write ("Charge unit at {0} ", positionTarget.Position);
-				break;
-			case PositionState.KeepDistance:
-				Console.Out.Write ("Keep {0} meters away from unit at {1} ", keepDistance, positionTarget.Position);
-				break;
-			case PositionState.RunAway:
-				Console.Out.Write("Run away ");
-				break;
-			case PositionState.Stay:
-				Console.Out.Write("Move to {0} and stay ", positionTarget.Position);
-				break;
-			default:
-				Console.Out.Write("None");
-				break;
-			}
-		}
 		/**
 		 * Attack: [actor, target] 
 		 *     Skill:  [actor, target(optional)]
@@ -290,14 +222,9 @@ namespace BattleEngine
 		}
 		
 		public delegate void Action(Unit target, IUseable usable);
-		public void syntaxCheck()
-		{
-			Unit u = new Unit(Vector2.Zero);
-			Action a = new Action(u.attack);
-			Action s = new Action(u.useSkill);
-			Action i = new Action(u.useItem);
-			Action g = new Action(u.guard);
-			Action e = new Action(u.escape);
+		
+		public static int SpeedComparison(Unit x, Unit y) {
+			return x.CurrentStats.speed.CompareTo (y.CurrentStats.speed);
 		}
 	}
 }
