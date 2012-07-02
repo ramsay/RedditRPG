@@ -19,13 +19,6 @@ namespace BattleEngine
 		public static float AREA_WIDTH_PIX= SCREEN_WIDTH;
 		public static float AREA_HEIGHT_PIX = AREA_HEIGHT * METRE_TO_PX;
 		
-		public static Vector2 AREA_CENTRE
-			= new Vector2( AREA_WIDTH/2f, (AREA_HEIGHT / 2f) -1f );
-		// Approx height for now
-		
-		public static Vector2 AREA_CENTRE_POSITION
-			= new Vector2( AREA_CENTRE.X * METRE_TO_PX, AREA_CENTRE.Y * METRE_TO_PX );
-		
 	}
 }
 
