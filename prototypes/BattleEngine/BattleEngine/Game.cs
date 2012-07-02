@@ -25,10 +25,10 @@ namespace BattleEngine
 		// Game constants
 		static int enemyCount = 3;
 		static int playerCount = 3;
-		enum GameState {Input, Play, Win, GameOver};
-		enum InputState {ActionSelect, SkillSelect, ItemSelect, ChangeSelect, 
+		enum GameState {Initial, Input, Play, Win, GameOver};
+		enum InputState {OffensiveSelect, DefensiveSelect, SkillSelect, ItemSelect, 
 			TargetSelect};
-		enum ActionState {Attack, Skill, Item, Gaurd, Escape};
+		enum ActionState {Basic, Skill, Item, SwapState, Escape};
 		
 		// Battle entities
 		Unit[] enemyTeam = new Unit[enemyCount];
@@ -43,18 +43,25 @@ namespace BattleEngine
 		GameState gameState;
 		/// <summary>
 		/// The state of the menu.
-		/// Action
-		///   Attack -> TargetSelect -> Done
-		///   Skill  -> SkillSelect  -> TargetSelect -> Done
-		///   Item   -> ItemSelect   -> TargetSelect -> Done
-		///   Change -> ChangeSelect -> Done
-		///   Guard  -> Done
-		///   Escape -> Done
+		/// OffensiveSelection
+		///   Attack  -> TargetSelect -> Done
+		///   Skill   -> SkillSelect  -> TargetSelect -> Done
+		///   Item    -> ItemSelect   -> TargetSelect -> Done
+		///   Defense -> DefensiveSelection
+		///   Escape  -> Done
+		/// DefensiveSelection
+		///   Guard   -> Done
+		///   Skill   -> SkillSelect   -> TargetSelect -> Done
+		///   Item    -> ItemSelect    -> TargetSelect -> Done
+		///   Offense -> OffensiveSelection
+		///   Escape  -> Done
 		/// </summary>
 		Stack<InputState> menuState;
 		BattleMenu[] menus = new BattleMenu[5];
 		BattleQueue queue;
-		BattleQueue.Turn currentTurn;
+		BattleQueue.Turn[] turnBlock;
+		int turnInputIndex;
+		int turnPlayIndex;
 
         BattleMenu endGameMenu;
 		StatsMenu statsMenu;
@@ -75,19 +82,19 @@ namespace BattleEngine
 				1f/16f*BattleConstants.SCREEN_WIDTH,
 				8f/9f*BattleConstants.SCREEN_HEIGHT);
 			
-			BattleMenu actionsMenu = new BattleMenu(
-                this, new[] {"Attack", "Skills", "Change", "Items", "Guard", 
+			menus[(int)InputState.OffensiveSelect] = new BattleMenu(
+                this, new[] {"Attack", "Skills", "Items", "Defense", 
 				"Escape", "Back"}, menuPosition);
-            
-			menus[(int)InputState.ActionSelect] = actionsMenu;
+			
+			menus[(int)InputState.DefensiveSelect] = new BattleMenu(
+                this, new[] {"Guard", "Skills", "Items", "Offense", 
+				"Escape", "Back"}, menuPosition);
 			
 			menus[(int)InputState.SkillSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
 			
 			menus[(int)InputState.ItemSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
 			
 			menus[(int)InputState.TargetSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
-			
-			menus[(int)InputState.ChangeSelect] = new BattleMenu(this, new[]{"Back"}, menuPosition);
 			
 			foreach (BattleMenu menu in menus) {
 				if (menu != null) {
@@ -160,9 +167,10 @@ namespace BattleEngine
                 }
             }
             endGameMenu.Visible = false;
+			turnPlayIndex = 0;
+			turnInputIndex = 0;
             menuState = new Stack<InputState>();
-            menuState.Push(InputState.ActionSelect);
-            gameState = GameState.Input;
+			gameState = GameState.Initial;
         }
 		
 		protected override void LoadContent ()
@@ -200,11 +208,23 @@ namespace BattleEngine
 		{
 			if (GamePad.GetState (PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
 				this.Exit ();
+			List<Unit> enemyList = new List<Unit>(enemyTeam);
 			
 			KeyboardState newState = Keyboard.GetState ();
 			
 			switch (gameState)
 			{
+				case GameState.Initial:
+					turnBlock = queue.getTurnBlock();
+					if (turnBlock.Length < 1) {
+						gameState = GameState.Initial;
+					} else if (enemyList.Contains(turnBlock[0].unit)) {
+						gameState = GameState.Play;
+					} else {
+						gameState = GameState.Input;
+					    PushInputState (InputState.OffensiveSelect);
+					}
+					break;
 				case GameState.Win:
                     UpdateEndGame(newState, gameTime);
 				    break;
@@ -337,11 +357,11 @@ namespace BattleEngine
 			}
 			else
 			{
-				if (currentTurn.Equals (BattleQueue.EmptyTurn) || currentTurn.completed) {
-					currentTurn = turns.Dequeue ();
+				if (turnBlock[turnPlayIndex].Equals (BattleQueue.EmptyTurn) || turnBlock[turnPlayIndex].completed) {
+					turnPlayIndex++;
 					// TODO USE currentTurn.action
 					// TODO animate
-					currentTurn.completed = true;
+					turnBlock[turnPlayIndex].completed = true;
 				}
 			}
 		}
@@ -354,9 +374,27 @@ namespace BattleEngine
 			return false;
 		}
 		
+		private void SwapInputState(InputState state) {
+			// Deactivate current Menu
+			if (menuState.Count > 0 && menus[(int)menuState.Peek ()] != null) {
+				menus[(int)menuState.Peek ()].Visible = false;
+			}
+			
+			if (menuState.Count > 0) {
+				menuState.Pop();
+			}
+			
+			// Activate new Menu
+			if (menus[(int)state] != null) {
+				menus[(int)state].Visible = true;
+			}
+			//Store state
+			menuState.Push (state);
+		}
+		
 		private void PushInputState(InputState state) {
 			// Deactivate current Menu
-			if (menus[(int)menuState.Peek ()] != null) {
+			if (menuState.Count > 0 && menus[(int)menuState.Peek ()] != null) {
 				menus[(int)menuState.Peek ()].Visible = false;
 			}
 			// Activate new Menu
@@ -369,7 +407,7 @@ namespace BattleEngine
 		
 		private void StoreUnitTarget() {
 			switch (menuState.Peek()) {
-			case InputState.ActionSelect: //Attack
+			case InputState.TargetSelect: //Attack
 				if (selectedTarget < playerCount) {
 					playerTeam[selectedUnit].setAttackTarget(playerTeam[selectedTarget]);
 				} else {
@@ -384,11 +422,13 @@ namespace BattleEngine
 			if (menus[(int)menuState.Peek ()] != null) {
 				menus[(int)menuState.Peek ()].Visible = false;
 			}
-			
-			// Restore state
-			InputState oldState = menuState.Pop();
-			if (oldState == InputState.TargetSelect) {
-				StoreUnitTarget();
+			InputState oldState = menuState.Peek ();
+			if (menuState.Count > 1) {
+				// Restore state
+				menuState.Pop();
+				if (oldState == InputState.TargetSelect) {
+					StoreUnitTarget();
+				}
 			}
 			// Activate new Menu
 			if (menus[(int)menuState.Peek()] != null) {
@@ -410,32 +450,114 @@ namespace BattleEngine
 			switch (menuState.Peek ()) {
 			case InputState.TargetSelect:
 				int unitCount = enemyCount + playerCount;
-				if ( IsPressed (newState, Keys.Up) || IsPressed (newState, Keys.Left)) {
+				if ( IsPressed (newState, Keys.Back) ) {
+					PopInputState();
+				} else if ( IsPressed (newState, Keys.Up) || IsPressed (newState, Keys.Left)) {
 					selectedTarget = (selectedTarget + unitCount -1) % unitCount;
 				} else if (IsPressed (newState, Keys.Down) || IsPressed (newState, Keys.Right)) {
 					selectedTarget = ++selectedTarget % unitCount;
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					PopInputState();
+					StoreUnitTarget();
+					turnInputIndex++;
 				}
 				break;
-			case InputState.ActionSelect:
-				if ( IsPressed (newState, Keys.Left)) {
-					menus[(int)InputState.ActionSelect].selectPrevious();
+			case InputState.OffensiveSelect:
+				if ( IsPressed (newState, Keys.Back) ) {
+					PopInputState();
+				} else if ( IsPressed (newState, Keys.Left)) {
+					menus[(int)InputState.OffensiveSelect].selectPrevious();
 				} else if (IsPressed (newState, Keys.Right)) {
-					menus[(int)InputState.ActionSelect].selectNext();
+					menus[(int)InputState.OffensiveSelect].selectNext();
 				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
-					switch ((ActionState)menus[(int)InputState.ActionSelect].getSelected ()) {
-					case ActionState.Attack: // Attack
+					switch ((ActionState)menus[(int)InputState.OffensiveSelect].getSelected ()) {
+					case ActionState.Basic: // Attack
 						PushInputState(InputState.TargetSelect);
 						break;
-					default: // Done
+					case ActionState.Item:
+						PushInputState(InputState.ItemSelect);
+						break;
+					case ActionState.Skill:
+						PushInputState(InputState.SkillSelect);
+						break;
+					case ActionState.SwapState:
+						SwapInputState(InputState.DefensiveSelect);
+						break;
+					case ActionState.Escape:
+						turnBlock[turnInputIndex].action = turnBlock[turnInputIndex].unit.escape;
+						PushInputState (InputState.OffensiveSelect);
+						break;
+					default: // Back
+						PopInputState();
+						break;
+					}
+				}
+				break;
+		    case InputState.DefensiveSelect:
+				if ( IsPressed (newState, Keys.Left)) {
+					menus[(int)InputState.DefensiveSelect].selectPrevious();
+				} else if (IsPressed (newState, Keys.Right)) {
+					menus[(int)InputState.DefensiveSelect].selectNext();
+				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
+					switch ((ActionState)menus[(int)InputState.DefensiveSelect].getSelected ()) {
+					case ActionState.Basic: // Guard
+						turnBlock[turnInputIndex].action = turnBlock[turnInputIndex].unit.guard;
+						// Go to next turnBlock item
+						turnInputIndex++;
+						PushInputState (InputState.OffensiveSelect);
+						break;
+					case ActionState.Item:
+						PushInputState(InputState.ItemSelect);
+						break;
+					case ActionState.Skill:
+						PushInputState(InputState.SkillSelect);
+						break;
+					case ActionState.SwapState:
+						SwapInputState(InputState.OffensiveSelect);
+						break;
+					case ActionState.Escape:
+						turnBlock[turnInputIndex].action = turnBlock[turnInputIndex].unit.escape;
+						turnInputIndex++;
+						PushInputState (InputState.OffensiveSelect);
+						break;
+					default: // Back
+						turnInputIndex--;
+						PopInputState();
+						break;
+					}
+				}
+				break;
+			case InputState.ItemSelect:
+				if ( IsPressed (newState, Keys.Left)) {
+					menus[(int)InputState.ItemSelect].selectPrevious();
+				} else if (IsPressed (newState, Keys.Right)) {
+					menus[(int)InputState.ItemSelect].selectNext();
+				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
+					switch ((ActionState)menus[(int)InputState.ItemSelect].getSelected ()) {
+					default: // Back
+						turnInputIndex--;
+						PopInputState();
+						break;
+					}
+				}
+				break;
+			case InputState.SkillSelect:
+				if ( IsPressed (newState, Keys.Left)) {
+					menus[(int)InputState.SkillSelect].selectPrevious();
+				} else if (IsPressed (newState, Keys.Right)) {
+					menus[(int)InputState.SkillSelect].selectNext();
+				} else if (IsPressed (newState, Keys.Space) || IsPressed (newState, Keys.Enter)) {
+					switch ((ActionState)menus[(int)InputState.SkillSelect].getSelected ()) {
+					default: // Back
+						turnInputIndex--;
 						PopInputState();
 						break;
 					}
 				}
 				break;
 			}
-			
+			if (turnBlock.Length <= turnInputIndex) {
+				gameState = GameState.Play;
+			}
 		}
 
         private void UpdateEndGame(KeyboardState newState, GameTime gameTime)
@@ -502,7 +624,7 @@ namespace BattleEngine
 				drawPosition = playerTeam[selectedUnit].Position;
 				spriteBatch.Draw (cursor, drawPosition, Color.Yellow);
 			}
-			if (menuState.Peek() == InputState.TargetSelect) {
+			if (menuState.Count > 0 && menuState.Peek() == InputState.TargetSelect) {
 				if (selectedTarget < playerCount) {
 					drawPosition = playerTeam[selectedTarget].Position;
 				} else {
