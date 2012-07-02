@@ -48,7 +48,7 @@ namespace BattleEngine
 		
 		List<Turn> turnList;
 		int length;
-		int currentIndex;
+		int inputIndex;
 		
 		Unit[] party;
 		Unit[] enemies;
@@ -81,7 +81,6 @@ namespace BattleEngine
 		
 		public override void Draw (GameTime gameTime)
 		{
-			Console.Out.Write ("Draw Battle Queue");
 			spriteBatch.Begin ();
 			
 			Vector2 position = Vector2.Zero;
@@ -97,8 +96,7 @@ namespace BattleEngine
 						font, turnList[i].unit.Name, position, 
 	                    textColor);
 				}
-				position.Y += 2 + font.MeasureString ("Bob").Y;
-				Console.Out.Write ("    Battle Queue item {0}", i);
+				position.Y += font.MeasureString ("Bob").Y - 4;
 			}
 			spriteBatch.End();
 		}
@@ -132,19 +130,26 @@ namespace BattleEngine
 			}
 		}
 		
-		public void change(int newSlot)
-		{
-			Turn now = turnList[currentIndex];
-			Turn later = turnList[newSlot];
-			turnList.RemoveAt(currentIndex);
-			turnList.Insert (currentIndex, later);
-			turnList.Insert (newSlot, now);
-		}
-		
 		public Turn[] getTurnBlock()
 		{
-			Turn[] block = turnList.GetRange (0, currentIndex).ToArray ();
-			return block;
+			List<Turn> block = new List<Turn>();
+			List<Unit> enemyList = new List<Unit>(enemies);
+			if (turnList.Count < 1) {
+				return block.ToArray();
+			}
+			
+			bool enemyTurnBlock = false;
+			if ( enemyList.Contains (turnList[0].unit)) {
+				enemyTurnBlock = true;
+			}
+			foreach (Turn t in turnList) {
+				if (enemyList.Contains(t.unit) && enemyTurnBlock) {
+					block.Add (t);
+				} else if (!enemyList.Contains(t.unit) && !enemyTurnBlock) {
+					block.Add (t);
+				}
+			}
+			return block.ToArray ();
 		}
 		
 		public void clearCompleted()
@@ -152,12 +157,6 @@ namespace BattleEngine
 			while (turnList[0].completed) {
 				turnList.RemoveAt(0);
 			}
-		}
-		 
-		public void setTurn(Unit.Action action) {
-			Turn t = turnList[currentIndex];
-			t.action = action;
-			currentIndex++;
 		}
 	}
 }
