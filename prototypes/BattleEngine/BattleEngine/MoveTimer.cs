@@ -86,8 +86,6 @@ namespace BattleEngine
                     direction * secondsPassed * 
                     (speed*BattleConstants.METRE_TO_PX));
 				
-				if(isInArea(position))
-				{currentPosition = position;}
 			}
 			
 			return result;
@@ -118,8 +116,6 @@ namespace BattleEngine
                     direction * secondsPassed * 
                     (speed*BattleConstants.METRE_TO_PX));
 				
-				if(isInArea(position))
-				{currentPosition = position;}
 			}
 			
 			return result;
@@ -131,23 +127,6 @@ namespace BattleEngine
 			direction.Normalize();
 			
 			return direction;
-		}
-		
-		/// <summary>
-		/// Checks if given position is within the battle area (debug purpose)
-		/// </summary>
-		/// <returns>
-		/// Return true if position is within the battle area, false otherwise
-		/// </returns>
-		/// <param name='position'>
-		/// Position of entity on the screen
-		/// </param>
-		public bool isInArea(Vector2 position) 
-		{
-			float x = (position.X - BattleConstants.AREA_CENTRE_POSITION.X) / (BattleConstants.AREA_WIDTH_PIX / 2f);
-			float y = (position.Y - BattleConstants.AREA_CENTRE_POSITION.Y) / (BattleConstants.AREA_HEIGHT_PIX / 2f);
-			
-		    return  ( (x * x) + (y * y) ) <= 1;
 		}
 	}
 }
